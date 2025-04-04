@@ -1,7 +1,7 @@
 ##########################################################################X
 # CJS model to estimate survival from MAPS banding stations
 #------------------------------------------------------------X
-# What is the minimum number of birds per species necessary?
+# Fitting CJS model with MAPS data
 # VAW
 # 4/3/2025
 ##########################################################################X
@@ -11,56 +11,8 @@ gc()
 # reproducibility
 set.seed(0235)
 
-# Load necessary libraries
-library(readxl)
-library(dplyr)
-library(tidyr)
-library(nimble)
-library(MCMCvis)
-library(coda)
-
-# Function to create initial values for latent state z
-init_z <- function(y_array) {
-  # Dimensions: [N, time, sp, station]
-  dims <- dim(y_array)
-  N <- dims[1]
-  time <- dims[2]
-  sp <- dims[3]
-  station <- dims[4]
-  
-  # Create an array for z
-  z <- array(NA, dim = c(N, time, sp, station))
-  
-  for (s in 1:sp) {
-    for (l in 1:station) {
-      for (i in 1:N) {
-        # Extract capture history for this individual
-        y_vec <- y_array[i, , s, l]
-        
-        # First occasion - set initial state based on first capture (if any)
-        first_capture <- which(y_vec == 1)[1]
-        if (!is.na(first_capture)) {
-          z[i, first_capture, s, l] <- 1  # Mark as alive at first capture
-        }
-        
-        for (t in 2:time) {
-          if (sum(y_vec[t:time]) > 0) {
-            # If detected at or after t, must be alive at t
-            z[i, t, s, l] <- 1
-          } else if (sum(y_vec[1:(t-1)]) == 0) {
-            # If never detected before t, assume not alive (conservative)
-            z[i, t, s, l] <- 0
-          } else {
-            # Detected before t but not after, uncertain status - initialize as alive
-            z[i, t, s, l] <- NA  # Uncertain if it was alive but not detected after
-          }
-        }
-      }
-    }
-  }
-  
-  return(z)
-}
+# Source dependencies
+source("00_funs.R")
 
 # Load banding data
 banding_data <- read_excel('MAPS atlantic forest BCR banding data.xlsx', sheet = 'MAPS_BANDING_capture_data')

@@ -1,7 +1,7 @@
 ##########################################################################
 # CJS model to estimate survival from MAPS banding stations
-#------------------------------------------------------------
-# Troubleshooting version - to find why we get -Inf log likelihood
+#------------------------------------------------------------X
+# Building CJS model and fitting with simulated data
 # VAW
 # 4/3/2025
 ##########################################################################
@@ -10,10 +10,9 @@ rm(list=ls())
 gc()
 # reproducibility
 set.seed(0235)
-# Load necessary libraries
-library(nimble)
-library(MCMCvis)
-library(coda)
+
+# Source dependencies
+source("00_funs.R")
 
 # Define a simpler CJS model for debugging
 cjs_code <- nimbleCode({

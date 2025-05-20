@@ -1,7 +1,7 @@
 ##########################################################################X
 # CJS model to estimate survival from MAPS banding stations
 #------------------------------------------------------------X
-# Fitting CJS model with MAPS data
+# Fitting CJS model with MAPS
 # VAW
 # 4/3/2025
 ##########################################################################X
@@ -24,7 +24,7 @@ station_data <- read.csv('MAPS atlantic forest BCR station info total.csv', head
 # First, get a random sample of 6 stations
 sampled_stations <- banding_data %>%
   distinct(STATION) %>%
-  slice_sample(n = 1) %>%
+  slice_sample(n = 6) %>%
   pull(STATION)
 
 # Then filter your data to only include those stations
@@ -33,7 +33,7 @@ banding_data2 <- banding_data %>%
   select(STATION, year, SPEC, BAND)
 
 # Filter for relevant species
-species_list <- c('BCCH', 'BTNW', 'HETH', 'REVI')
+species_list <- c('BCCH') #, 'BTNW', 'HETH', 'REVI')
 filtered_data <- banding_data2 %>%
   filter(SPEC %in% species_list) %>%
   select(STATION, year, SPEC, BAND) 

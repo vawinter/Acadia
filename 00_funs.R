@@ -51,7 +51,7 @@ init_z <- function(y_array) {
 }
 
 # Function to test minimum sample size needed
-test_min_recapture <- function(full_data, species, step = 2) {
+test_min_recapture <- function(full_data, species, step = 2, iter, burn, t) {
   # Load dependencies
   library(nimble)
   library(coda)
@@ -145,10 +145,10 @@ test_min_recapture <- function(full_data, species, step = 2) {
     tryCatch({
       samples <- runMCMC(
         compiled_mcmc, 
-        niter = 130000, 
-        nburnin = 10000, 
+        niter = iter, 
+        nburnin = burn, 
         nchains = 2,
-        thin = 10,
+        thin = t,
         samplesAsCodaMCMC = TRUE
       )
       
@@ -175,17 +175,17 @@ test_min_recapture <- function(full_data, species, step = 2) {
         best_n <- n
         min_rhat <- min(rhat)
         
-        # Summarize how many individuals came from each station
-        station_counts <- sampled_data %>%
-          count(STATION, name = "n_individuals")
-        
-        # Store results
-        results_list[[as.character(n)]] <- list(
-          sample_size = n,
-          station_counts = station_counts,
-          phi_summary = summary_df[grep("phi", rownames(summary_df)), ],
-          p_summary = summary_df[grep("p", rownames(summary_df)), ]
-        )
+        # # Summarize how many individuals came from each station
+        # station_counts <- sampled_data %>%
+        #   count(STATION, name = "n_individuals")
+        # 
+        # # Store results
+        # results_list[[as.character(n)]] <- list(
+        #   sample_size = n,
+        #   station_counts = station_counts,
+        #   phi_summary = summary_df[grep("phi", rownames(summary_df)), ],
+        #   p_summary = summary_df[grep("p", rownames(summary_df)), ]
+        # )
       }
       
     }, error = function(e) {
@@ -212,5 +212,5 @@ test_min_recapture <- function(full_data, species, step = 2) {
     }
   }
   
-  return(results_list)
+  return(samples)
 }

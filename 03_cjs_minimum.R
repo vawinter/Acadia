@@ -17,8 +17,8 @@ set.seed(0235)
 source("00_funs.R")
 
 # Load banding data
-banding_data <- read_excel('MAPS atlantic forest BCR banding data.xlsx', sheet = 'MAPS_BANDING_capture_data')
-station_data <- read.csv('MAPS atlantic forest BCR station info total.csv', header = T)
+banding_data <- read_excel('Data/MAPS atlantic forest BCR banding data.xlsx', sheet = 'MAPS_BANDING_capture_data')
+station_data <- read.csv('Data/MAPS atlantic forest BCR station info total.csv', header = T)
 
 ############################################X
 # Define NIMBLE Model ----
@@ -60,23 +60,74 @@ cjs_code <- nimbleCode({
 ############################################X
 # First, get a random sample of 6 stations
 sampled_stations <- banding_data %>%
+  filter(SPEC %in% c("BCCH", "BTNW", "HETH", "REVI")) %>% 
   distinct(STATION) %>%
-  slice_sample(n = 6) %>%
+  slice_sample(n = 10) %>%
   pull(STATION)
+#--------------------------------X
+# Species set-up information ----
+# c("BCCH", "BTNW", "HETH", "REVI")
+#--------------------------------X
+# BCCH (starting n: 64): iter = 350000, burn = 20000, t = 10; nmin = 18, 6 stations
+# BTNW (starting n: 123):: iter = 350000, burn = 20000, t = 10; n min = 3 10 stations
+# HETH (starting n: 90):: iter = 350000, burn = 20000, t = 10; n min = 2 6 stations
+# REVI (starting n: 107):: iter = , burn = , t = ; n min = 3 6 stations
 
-species_list <- c("BCCH", "BTNW", "HETH", "REVI")
-
-# Then filter your data to only include those stations
+# SOI:
+species <-  c("BCCH")
+# filter data to only include those stations and species
 full_data <- banding_data %>%
-  filter(SPEC %in% species_list & STATION %in% sampled_stations) %>%
+  filter(SPEC %in% species & STATION %in% sampled_stations) %>%
   select(STATION, year, SPEC, BAND)
 
+#---------------------------------X
+## Run this function for a single species ----
+#---------------------------------X
+test_min_recapture(full_data, species, iter = 350000, burn = 20000, t = 10)
+# Check 6 sites,
+# Check 1 site
+#---------------------------------X
+## Run this function for all species ----
+#---------------------------------X
+all_results <- lapply(species, function(sp) {
+  cat("\nRunning for species:", sp, "\n")
+  test_min_recapture(full_data, sp, iter = 350000, burn = 20000, t = 10)
+})
+names(all_results) <- species
 
-#---------------------------------X
-## Run this function for each species ----
-#---------------------------------X
-all_results <- list()
-for (sp in species) {
-  all_results[[sp]] <- test_min_recapture(full_data, sp)
+# Create summary across all species
+species_summary <- data.frame(
+  Species = character(),
+  Min_Sample_Size = numeric(),
+  Mean_Precision = numeric(),
+  Max_Rhat = numeric(),
+  Min_ESS = numeric(),
+  stringsAsFactors = FALSE
+)
+
+for (sp in names(results_list)) {
+  if (!is.null(results_list[[sp]])) {
+    min_n <- results_list[[sp]]$min_sample_size
+    min_result <- results_list[[sp]]$all_results[[as.character(min_n)]]
+    
+    species_summary <- rbind(species_summary, data.frame(
+      Species = sp,
+      Min_Sample_Size = min_n,
+      Mean_Precision = min_result$mean_precision,
+      Max_Rhat = max(min_result$rhat, na.rm = TRUE),
+      Min_ESS = min(min_result$ess, na.rm = TRUE),
+      stringsAsFactors = FALSE
+    ))
+  }
 }
 
+# Print final summary
+cat("\n========================================\n")
+cat("Final Summary Across Species\n")
+cat("========================================\n")
+print(species_summary)
+
+# Save final results
+saveRDS(full_data, file = "BCCH_full_data.rds")
+saveRDS(samples, file = "BCCH_min_captures_2.rds")
+write.csv(full_data, file = "species_min_sample_sizes.csv", row.names = FALSE)

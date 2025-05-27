@@ -62,7 +62,7 @@ cjs_code <- nimbleCode({
 sampled_stations <- banding_data %>%
   filter(SPEC %in% c("BCCH", "BTNW", "HETH", "REVI")) %>% 
   distinct(STATION) %>%
-  slice_sample(n = 10) %>%
+  slice_sample(n = 7) %>% # i want to get a range of values for each sp, c(2, 4, 6, 8, 10)
   pull(STATION)
 #--------------------------------X
 # Species set-up information ----
@@ -74,11 +74,15 @@ sampled_stations <- banding_data %>%
 # REVI (starting n: 107):: iter = , burn = , t = ; n min = 3 6 stations
 
 # SOI:
-species <-  c("BCCH")
+species <-  c("BTNW", "HETH")
 # filter data to only include those stations and species
 full_data <- banding_data %>%
   filter(SPEC %in% species & STATION %in% sampled_stations) %>%
   select(STATION, year, SPEC, BAND)
+
+full_data %>% 
+  group_by(STATION, year, SPEC) %>% 
+  summarise(n = n())
 
 #---------------------------------X
 ## Run this function for a single species ----
@@ -89,45 +93,46 @@ test_min_recapture(full_data, species, iter = 350000, burn = 20000, t = 10)
 #---------------------------------X
 ## Run this function for all species ----
 #---------------------------------X
-all_results <- lapply(species, function(sp) {
+lapply(species, function(sp) {
   cat("\nRunning for species:", sp, "\n")
   test_min_recapture(full_data, sp, iter = 350000, burn = 20000, t = 10)
 })
-names(all_results) <- species
 
-# Create summary across all species
-species_summary <- data.frame(
-  Species = character(),
-  Min_Sample_Size = numeric(),
-  Mean_Precision = numeric(),
-  Max_Rhat = numeric(),
-  Min_ESS = numeric(),
-  stringsAsFactors = FALSE
-)
+#names(all_results) <- species
 
-for (sp in names(results_list)) {
-  if (!is.null(results_list[[sp]])) {
-    min_n <- results_list[[sp]]$min_sample_size
-    min_result <- results_list[[sp]]$all_results[[as.character(min_n)]]
-    
-    species_summary <- rbind(species_summary, data.frame(
-      Species = sp,
-      Min_Sample_Size = min_n,
-      Mean_Precision = min_result$mean_precision,
-      Max_Rhat = max(min_result$rhat, na.rm = TRUE),
-      Min_ESS = min(min_result$ess, na.rm = TRUE),
-      stringsAsFactors = FALSE
-    ))
-  }
-}
-
-# Print final summary
-cat("\n========================================\n")
-cat("Final Summary Across Species\n")
-cat("========================================\n")
-print(species_summary)
-
-# Save final results
-saveRDS(full_data, file = "BCCH_full_data.rds")
-saveRDS(samples, file = "BCCH_min_captures_2.rds")
-write.csv(full_data, file = "species_min_sample_sizes.csv", row.names = FALSE)
+# # Create summary across all species
+# species_summary <- data.frame(
+#   Species = character(),
+#   Min_Sample_Size = numeric(),
+#   Mean_Precision = numeric(),
+#   Max_Rhat = numeric(),
+#   Min_ESS = numeric(),
+#   stringsAsFactors = FALSE
+# )
+# 
+# for (sp in names(results_list)) {
+#   if (!is.null(results_list[[sp]])) {
+#     min_n <- results_list[[sp]]$min_sample_size
+#     min_result <- results_list[[sp]]$all_results[[as.character(min_n)]]
+#     
+#     species_summary <- rbind(species_summary, data.frame(
+#       Species = sp,
+#       Min_Sample_Size = min_n,
+#       Mean_Precision = min_result$mean_precision,
+#       Max_Rhat = max(min_result$rhat, na.rm = TRUE),
+#       Min_ESS = min(min_result$ess, na.rm = TRUE),
+#       stringsAsFactors = FALSE
+#     ))
+#   }
+# }
+# 
+# # Print final summary
+# cat("\n========================================\n")
+# cat("Final Summary Across Species\n")
+# cat("========================================\n")
+# print(species_summary)
+# 
+# # Save final results
+# saveRDS(full_data, file = "BCCH_full_data.rds")
+# saveRDS(samples, file = "BCCH_min_captures_2.rds")
+# write.csv(full_data, file = "species_min_sample_sizes.csv", row.names = FALSE)

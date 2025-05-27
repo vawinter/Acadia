@@ -188,8 +188,25 @@ test_min_recapture <- function(full_data, species, step = 2, iter, burn, t) {
         # )
       }
       
+      # SAVE RESULTS WHEN n <= 15
+      if (n <= 15) {
+        save_data <- list(
+          n = n,
+          samples = samples,
+          phi_values = phi_values,
+          rhat = rhat,
+          ess = ess,
+          species = species,
+          timestamp = Sys.time()
+        )
+        filename <- paste0("Output/",species, "_n", n, "_", Sys.Date(), ".rds")
+        saveRDS(save_data, file = filename)
+        cat("*** SAVED results for n =", n, "to", filename, "***\n")
+      }
+      
     }, error = function(e) {
       cat("Model broke with error: ", e$message, "\n")
+      
       
       # Output phi and p values before the model broke
       if (exists("phi_values")) {
